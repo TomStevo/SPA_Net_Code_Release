@@ -98,10 +98,10 @@ class Options(Namespace):
         self.dropout = 0.0
 
         # Total number of epochs to train for
-        self.epochs = 500
+        self.epochs = 100
 
         # Total number of GPUs to use for training
-        self.num_gpu = 4
+        self.num_gpu = 2
 
         # Number of processes to spawn for data collection
         # This is per-gpu! So if we use 4 gpus, then 64 workers will be spawned.

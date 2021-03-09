@@ -92,7 +92,22 @@ class QuarkTripletNetwork(QuarkBaseNetwork):
         if torch.isnan(loss):
             raise ValueError("Training loss has diverged.")
 
-        self.log("train_loss", loss)
+        either_accuracy, both_accuracy = self.accuracy(predictions, targets)
+        swapped_either_accuracy, swapped_both_accuracy = self.accuracy(predictions, swapped_targets)
+
+        either_accuracy = either_accuracy | swapped_either_accuracy
+        both_accuracy = both_accuracy | swapped_both_accuracy
+
+        both_accuracy = both_accuracy.float().mean()
+        either_accuracy = either_accuracy.float().mean()
+
+        self.logger.experiment.add_scalars("metrics", 
+                                           {"train_loss": loss,
+                                            "train_both_accuracy": both_accuracy,
+                                            "train_either_accuracy": either_accuracy},
+                                           global_step=self.global_step)
+
+        #self.log("train_loss", loss)
 
         return loss
 
@@ -136,6 +151,17 @@ class QuarkTripletNetwork(QuarkBaseNetwork):
 
         swapped_targets = self.swap_antiparticle_targets(targets)
 
+        regular_loss = self.loss(predictions, targets)
+        swapped_loss = self.loss(predictions, swapped_targets)
+
+        combined_loss = regular_loss
+        if self.options.combine_pair_loss == "min":
+            combined_loss = torch.min(regular_loss, swapped_loss)
+        elif self.options.combine_pair_loss == "sum":
+            combined_loss = (regular_loss + swapped_loss) / 2.0
+
+        loss = torch.mean(combined_loss)
+
         either_accuracy, both_accuracy = self.accuracy(predictions, targets)
         swapped_either_accuracy, swapped_both_accuracy = self.accuracy(predictions, swapped_targets)
 
@@ -145,8 +171,14 @@ class QuarkTripletNetwork(QuarkBaseNetwork):
         both_accuracy = both_accuracy.float().mean()
         either_accuracy = either_accuracy.float().mean()
 
-        self.log("triplet_both_accuracy", both_accuracy)
-        self.log("triplet_either_accuracy", either_accuracy)
+        self.logger.experiment.add_scalars("metrics", 
+                                           {"val_loss": loss,
+                                            "val_both_accuracy": both_accuracy,
+                                            "val_either_accuracy": either_accuracy},
+                                           global_step=self.global_step)
+
+        #self.log("triplet_both_accuracy", both_accuracy)
+        #self.log("triplet_either_accuracy", either_accuracy)
 
         return {"triplet_both_accuracy": both_accuracy, "triplet_either_accuracy": either_accuracy}
 
