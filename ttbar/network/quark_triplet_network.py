@@ -137,6 +137,9 @@ class QuarkTripletNetwork(QuarkBaseNetwork):
         left_predictions = left_predictions.view(batch_size, -1).argmax(1)
         right_predictions = right_predictions.view(batch_size, -1).argmax(1)
 
+        #print(left_predictions)
+        #print(left_targets)
+
         left_accuracy = left_targets == left_predictions
         right_accuracy = right_targets == right_predictions
 
